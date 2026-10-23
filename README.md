@@ -52,12 +52,14 @@ accent=2E7D32
 Save the file and click back into the app. It notices the edit, reloads,
 drops the old masjid's cache and fetches the new times. No restart needed.
 
-**Finding your `masjidalId`.** Most masjid websites that show a live prayer
+**Finding your `masjidalId`.** Many masjid websites that show a live prayer
 table embed Masjidal's widget. On your masjid's site, open *View page source*
-and search for `masjidal`. You will find either a script tag or an iframe
-with a URL containing `masjid_id=XXXXXXXX`, or a link to
-`masjidal.com/widget/...`. The eight-character id is what you want. You can
-confirm it by opening
+and search for `masjidal`. The classic embed is an iframe whose URL looks
+like `https://masjidal.com/widget/simple?masjid_id=XXXXXXXX`; the
+eight-character id is what you want. (Masjidal's newer `<masjidal-widget>`
+element carries a `widget-id` instead; if that is all you find, ask whoever
+runs the site for the masjid id from Masjidal's *Settings → Web Integration*
+tab.) You can confirm an id by opening
 
 ```
 https://masjidal.com/api/v1/time/range?masjid_id=XXXXXXXX&from_date=2026-01-01&to_date=2026-01-03
