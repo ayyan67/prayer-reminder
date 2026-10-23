@@ -1,0 +1,4 @@
+# build output (grab a built exe from GitHub Releases, or run build.sh)
+PrayerReminder.exe
+app.res
+*.o
