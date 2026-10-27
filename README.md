@@ -1,10 +1,12 @@
 # Prayer Reminder
 
-A small Windows tray app that pulls the iqamah times your masjid publishes
-and pops up a reminder before each congregation, so you know when to leave.
+A small tray app that pulls the iqamah times your masjid publishes and pops
+up a reminder before each congregation, so you know when to leave.
 
-Native C + Win32. No runtime, no installer, no dependencies beyond the
-Windows system DLLs. One ~270 KB `.exe`.
+- **Windows**: native C + Win32. No runtime, no installer, no dependencies
+  beyond the Windows system DLLs. One ~270 KB `.exe`.
+- **macOS**: native Swift menu bar app in [`macos/`](#macos). No Dock icon,
+  no dependencies, one ~1.6 MB universal `.app`.
 
 It ships pointed at the [Muslim Center of New Jersey](https://mcnjonline.com/),
 which is my masjid, but any masjid whose website uses a
@@ -31,8 +33,9 @@ config change. See [Use it for your own masjid](#use-it-for-your-own-masjid).
 ## Use it for your own masjid
 
 Open **Settings → Masjid → Edit config.ini** (or edit
-`%APPDATA%\PrayerReminder\config.ini` directly) and change the `[masjid]`
-section:
+`%APPDATA%\PrayerReminder\config.ini` on Windows,
+`~/Library/Application Support/PrayerReminder/config.ini` on macOS) and change
+the `[masjid]` section:
 
 ```ini
 [masjid]
@@ -75,7 +78,45 @@ The fetch and parse code is isolated in one function (`fetch_thread` in
 `src/app.ico` in your colour before you build. The tray icon is drawn at
 runtime from `accent`, so it follows the config without a rebuild.
 
-## Build
+## macOS
+
+![macOS](docs/macos.png)
+
+The Mac version lives in the menu bar. The icon shows the next prayer
+(`Asr 5:45`), clicking it opens the same Today / Settings view, and
+right-clicking gives the tray menu (refresh, pause for 1 h / 4 h / until
+tomorrow, open website, quit). Reminders appear as a popup in the top-right
+corner, on every Space and over full-screen apps, with **Snooze** and
+**Dismiss**.
+
+Build and install (needs the Xcode command line tools, `xcode-select --install`):
+
+```sh
+macos/build.sh --install     # builds, copies to /Applications, launches
+```
+
+Without `--install` it just builds `macos/build/Prayer Reminder.app`. It runs
+on macOS 13 or later, Apple silicon and Intel.
+
+It reads and writes the same `config.ini` keys as Windows, so a config can be
+copied between the two. Data lives in
+`~/Library/Application Support/PrayerReminder/`. **Open at login** registers
+it as a login item (System Settings → General → Login Items).
+
+If you use a menu bar manager (Hidden Bar, Bartender, Ice) or a notched
+MacBook with a full menu bar, the icon may start out hidden. ⌘-drag it into
+view. Until then, launching the app again opens its window from the top-right
+of the screen.
+
+Mac-specific settings:
+
+| Key | Meaning |
+|---|---|
+| `[general] menuBarText` | `1` shows the next prayer next to the icon; `0` shows the icon only. |
+
+`macos/tools/make_icon.swift 2E7D32` regenerates the app icon in your colour.
+
+## Build (Windows)
 
 Needs MinGW-w64 (MSYS2 UCRT64 is what this was built with).
 
@@ -87,7 +128,7 @@ That produces `PrayerReminder.exe` in the project root. Building does not
 require Python; `tools/make_icon.py` only matters if you want a different
 icon colour baked into the `.exe` itself.
 
-## Run
+## Run (Windows)
 
 Just launch `PrayerReminder.exe`. It adds a tray icon and, by default,
 registers itself to start with Windows (`--tray`, quietly in the background).
@@ -155,7 +196,21 @@ src/
   gfx.c        drawing helpers (antialiased shapes, fonts, widgets)
   ui_main.c    main window
   ui_toast.c   the reminder popup
+
+macos/
+  build.sh              swiftc -> universal .app, ad-hoc signed
+  Sources/Model.swift   shared types (app.h)
+  Sources/Times.swift   JSON + HTML parsing, caching, fetch (times.c)
+  Sources/Sched.swift   reminder events, formatting (sched.c)
+  Sources/Config.swift  ini load/save, login item (config.c)
+  Sources/AppModel.swift state and the one-second tick (main.c)
+  Sources/MainView.swift the popover (ui_main.c)
+  Sources/Toast.swift   the reminder popup (ui_toast.c)
+  Sources/main.swift    menu bar item, menu, popover
 ```
+
+The Mac port keeps the same structure and the same rules below; each Swift
+file maps to the C file named beside it.
 
 The popup is a per-pixel-alpha layered window, so its rounded corners are
 genuinely antialiased over any wallpaper. Everything else is double-buffered

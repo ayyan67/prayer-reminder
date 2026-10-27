@@ -2,3 +2,6 @@
 PrayerReminder.exe
 app.res
 *.o
+
+# macOS build output
+macos/build/
