@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if let b = item.button {
             b.image = Self.menuBarIcon()
             b.imagePosition = .imageLeading
+            b.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
             b.target = self
             b.action = #selector(clicked)
             b.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -27,7 +28,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         popover.behavior = .transient
         popover.animates = false
-        popover.appearance = NSAppearance(named: .darkAqua)
         popover.delegate = self
         popover.contentViewController = NSHostingController(rootView: MainView().environmentObject(model))
 
@@ -111,25 +111,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
         popover.contentViewController?.view.window?.makeKey()
         NSApp.activate(ignoringOtherApps: true)
-        paintPopoverFrame()
     }
 
     func popoverDidClose(_ note: Notification) {
         model.live = false
         anchor?.orderOut(nil)
-    }
-
-    /// Fill the popover's frame (including its arrow) with the app background
-    /// so it matches the content instead of the system material.
-    private func paintPopoverFrame() {
-        guard let frame = popover.contentViewController?.view.window?.contentView?.superview,
-              !frame.subviews.contains(where: { $0.identifier?.rawValue == "bg" }) else { return }
-        let bg = NSView(frame: frame.bounds)
-        bg.identifier = NSUserInterfaceItemIdentifier("bg")
-        bg.wantsLayer = true
-        bg.layer?.backgroundColor = NSColor(T.bg).cgColor
-        bg.autoresizingMask = [.width, .height]
-        frame.addSubview(bg, positioned: .below, relativeTo: nil)
     }
 
     private func showMenu() {
