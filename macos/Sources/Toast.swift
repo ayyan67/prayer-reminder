@@ -1,8 +1,9 @@
 // The reminder popup: a borderless, non-activating panel in the top-right
-// corner, above full-screen apps and on every Space. Mirrors src/ui_toast.c.
+// corner, above full-screen apps and on every Space. Mirrors src/ui_toast.c,
+// styled like a macOS notification banner (blurred material, app mark).
 import SwiftUI
 
-private let W: CGFloat = 372, H: CGFloat = 156
+private let W: CGFloat = 360, H: CGFloat = 112, R: CGFloat = 18
 
 /// Buttons should work on the first click even though the panel never
 /// becomes key.
@@ -30,21 +31,25 @@ final class Toast {
                              snooze: { [weak self] in self?.snooze(ev) },
                              dismiss: { [weak self] in self?.close() },
                              open: { [weak self] in self?.close(); self?.openMain() })
-        p.contentView = FirstClickHost(rootView: view)
+        let fx = p.contentView!
+        fx.subviews.forEach { $0.removeFromSuperview() }
+        let host = FirstClickHost(rootView: view)
+        host.frame = fx.bounds
+        host.autoresizingMask = [.width, .height]
+        fx.addSubview(host)
 
-        // Slide in from the right as it fades in.
+        // Slide in from the right as it fades in, like a notification.
         let screen = (NSScreen.screens.first ?? NSScreen.main)!.visibleFrame
-        let end = NSRect(x: screen.maxX - W - 14, y: screen.maxY - H - 10, width: W, height: H)
-        p.setFrame(end.offsetBy(dx: 24, dy: 0), display: false)
+        let end = NSRect(x: screen.maxX - W - 12, y: screen.maxY - H - 10, width: W, height: H)
+        p.setFrame(end.offsetBy(dx: W / 3, dy: 0), display: false)
         p.alphaValue = 0
         p.orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { c in
-            c.duration = 0.22
-            c.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            c.duration = 0.28
+            c.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.3, 1)
             p.animator().setFrame(end, display: true)
             p.animator().alphaValue = 1
         }
-        p.invalidateShadow()
 
         autoTimer?.invalidate()
         if model.cfg.toastSeconds > 0 {
@@ -60,7 +65,7 @@ final class Toast {
         autoTimer?.invalidate()
         guard let p = panel, p.isVisible else { return }
         NSAnimationContext.runAnimationGroup({ c in
-            c.duration = 0.18
+            c.duration = 0.2
             p.animator().alphaValue = 0
         }, completionHandler: { p.orderOut(nil) })
     }
@@ -88,8 +93,27 @@ final class Toast {
         p.hidesOnDeactivate = false
         p.isReleasedWhenClosed = false
         p.becomesKeyOnlyIfNeeded = true
-        p.appearance = NSAppearance(named: .darkAqua)
+
+        // Blurred, appearance-aware backdrop with continuous rounded corners.
+        let fx = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: W, height: H))
+        fx.material = .popover
+        fx.blendingMode = .behindWindow
+        fx.state = .active
+        fx.maskImage = Self.roundedMask(R)
+        p.contentView = fx
         return p
+    }
+
+    private static func roundedMask(_ r: CGFloat) -> NSImage {
+        let d = r * 2 + 1
+        let img = NSImage(size: NSSize(width: d, height: d), flipped: false) { rect in
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: r, yRadius: r).fill()
+            return true
+        }
+        img.capInsets = NSEdgeInsets(top: r, left: r, bottom: r, right: r)
+        img.resizingMode = .stretch
+        return img
     }
 }
 
@@ -101,7 +125,7 @@ struct ToastView: View {
     let open: () -> Void
 
     private var eyebrow: String {
-        ev.lead <= 0 ? "STARTING NOW" : ev.lead == 1 ? "IN 1 MINUTE" : "IN \(ev.lead) MINUTES"
+        ev.lead <= 0 ? "Starting now" : ev.lead == 1 ? "In 1 minute" : "In \(ev.lead) minutes"
     }
     private var line: String {
         let t = fmtTime(ev.iqamahMin, cfg)
@@ -113,56 +137,36 @@ struct ToastView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
+        VStack(alignment: .leading, spacing: 0) {
             // Clicking the card itself opens the app.
-            HStack(spacing: 0) {
-                Rectangle().fill(cfg.accentColor).frame(width: 4)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(eyebrow)
-                        .font(.system(size: 10.5, weight: .bold))
-                        .foregroundColor(cfg.accentColor)
-                    Text(ev.prayer.name)
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(T.text)
-                    Text(line)
-                        .font(.system(size: 12.5))
-                        .foregroundColor(T.dim)
-                    Spacer()
+            HStack(alignment: .top, spacing: 12) {
+                AppMark(accent: cfg.accentRaw).frame(width: 38, height: 38)
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 6) {
+                        Text(ev.prayer.name).font(.system(size: 15, weight: .semibold))
+                        Text(eyebrow)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(cfg.accentColor)
+                    }
+                    Text(line).font(.system(size: 12.5)).foregroundColor(T.dim)
+                    Text(cfg.masjidName).font(.system(size: 11)).foregroundColor(T.faint).lineLimit(1)
                 }
-                .padding(.leading, 18).padding(.top, 16)
-                Spacer()
+                Spacer(minLength: 0)
             }
             .contentShape(Rectangle())
             .onTapGesture(perform: open)
 
+            Spacer(minLength: 0)
             HStack(spacing: 8) {
-                Button("Snooze \(cfg.snoozeMinutes)m", action: snooze).buttonStyle(ToastButton(cfg: cfg))
-                Button("Dismiss", action: dismiss).buttonStyle(ToastButton(cfg: cfg, primary: true))
+                Spacer()
+                Button("Snooze \(cfg.snoozeMinutes)m", action: snooze)
+                Button("Dismiss", action: dismiss).keyboardShortcut(.defaultAction)
             }
-            .padding(16)
+            .controlSize(.regular)
         }
+        .padding(14)
         .frame(width: W, height: H)
-        .background(T.card)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .strokeBorder(Color(hex: "363E48"), lineWidth: 1))
-        .environment(\.colorScheme, .dark)
-    }
-}
-
-/// PillButton needs the model from the environment; the popup is standalone.
-private struct ToastButton: ButtonStyle {
-    let cfg: Config
-    var primary = false
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 12.5, weight: .semibold))
-            .foregroundColor(primary ? cfg.onAccent : T.text)
-            .frame(width: 96, height: 32)
-            .background(RoundedRectangle(cornerRadius: 8).fill(primary ? cfg.accentColor : T.bg))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(primary ? Color.clear : T.line, lineWidth: 1))
-            .opacity(configuration.isPressed ? 0.75 : 1)
-            .contentShape(Rectangle())
+        .overlay(RoundedRectangle(cornerRadius: R, style: .continuous)
+            .strokeBorder(T.line, lineWidth: 0.5))
     }
 }

@@ -85,11 +85,25 @@ runtime from `accent`, so it follows the config without a rebuild.
 The Mac version lives in the menu bar. The icon shows the next prayer
 (`Asr 5:45`), clicking it opens the same Today / Settings view, and
 right-clicking gives the tray menu (refresh, pause for 1 h / 4 h / until
-tomorrow, open website, quit). Reminders appear as a popup in the top-right
-corner, on every Space and over full-screen apps, with **Snooze** and
-**Dismiss**.
+tomorrow, open website, quit). It looks like a Mac app rather than a copy of
+the Windows one: it follows light and dark mode, uses the native popover and
+controls, and Settings is laid out like System Settings. The masjid's
+`accent` colour is kept for the highlights and is deepened automatically in
+light mode so it stays readable.
 
-Build and install (needs the Xcode command line tools, `xcode-select --install`):
+Reminders arrive as a notification-style banner in the top-right corner, on
+every Space and over full-screen apps, with **Snooze** and **Dismiss**:
+
+![macOS reminder](docs/macos-reminder.png)
+
+**Download.** Grab `PrayerReminder-macOS.zip` from
+[Releases](https://github.com/ayyan67/prayer-reminder/releases), unzip it and
+drag **Prayer Reminder** into Applications. It isn't notarized, so the first
+launch is blocked: open **System Settings → Privacy & Security** and click
+**Open Anyway** (or run
+`xattr -dr com.apple.quarantine "/Applications/Prayer Reminder.app"`).
+
+**Build it yourself** (needs the Xcode command line tools, `xcode-select --install`):
 
 ```sh
 macos/build.sh --install     # builds, copies to /Applications, launches

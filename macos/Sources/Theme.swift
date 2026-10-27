@@ -1,99 +1,53 @@
-// Palette and small reusable controls. Same dark palette as src/gfx.h.
+// Colours and small shared views. Unlike Windows, the Mac version follows
+// the system appearance: semantic label colours and native materials, with
+// the masjid's accent as the one brand colour.
 import SwiftUI
 
 enum T {
-    static let bg     = Color(hex: "101317")
-    static let card   = Color(hex: "191D23")
-    static let cardHi = Color(hex: "21272F")
-    static let line   = Color(hex: "282E37")
-    static let text   = Color(hex: "E9EDF2")
-    static let dim    = Color(hex: "8C97A5")
-    static let faint  = Color(hex: "5B6572")
-    static let warn   = Color(hex: "E08B3E")
+    static let text  = Color.primary
+    static let dim   = Color.secondary
+    static let faint = Color(nsColor: .tertiaryLabelColor)
+    static let fill  = Color.primary.opacity(0.055)      // cards, the next-prayer row
+    static let line  = Color.primary.opacity(0.1)
+    static let warn  = Color.orange
+    static let tile  = Color(hex: "191D23")              // app icon background
+}
+
+extension NSColor {
+    convenience init(hex: String) {
+        let v = UInt32(hex.replacingOccurrences(of: "#", with: ""), radix: 16) ?? 0
+        self.init(srgbRed: CGFloat((v >> 16) & 0xFF) / 255, green: CGFloat((v >> 8) & 0xFF) / 255,
+                  blue: CGFloat(v & 0xFF) / 255, alpha: 1)
+    }
 }
 
 extension Color {
-    init(hex: String) {
-        let v = UInt32(hex.replacingOccurrences(of: "#", with: ""), radix: 16) ?? 0
-        self.init(red: Double((v >> 16) & 0xFF) / 255, green: Double((v >> 8) & 0xFF) / 255,
-                  blue: Double(v & 0xFF) / 255)
-    }
+    init(hex: String) { self.init(nsColor: NSColor(hex: hex)) }
 }
 
 extension Config {
-    var accentColor: Color { Color(hex: accent) }
-    /// Readable text over the accent colour.
-    var onAccent: Color {
-        let v = UInt32(accent, radix: 16) ?? 0
-        let l = 0.299 * Double((v >> 16) & 0xFF) + 0.587 * Double((v >> 8) & 0xFF) + 0.114 * Double(v & 0xFF)
-        return l > 140 ? T.bg : .white
+    /// The masjid colour as configured; used where it sits on a dark tile.
+    var accentRaw: Color { Color(hex: accent) }
+
+    /// The masjid colour adjusted per appearance: as-is in dark mode, deepened
+    /// in light mode so text in it stays readable.
+    var accentColor: Color {
+        let base = NSColor(hex: accent)
+        return Color(nsColor: NSColor(name: nil) { ap in
+            ap.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? base : (base.blended(withFraction: 0.38, of: .black) ?? base)
+        })
     }
 }
 
-struct PillButton: ButtonStyle {
-    var primary = false
-    @EnvironmentObject var m: AppModel
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundColor(primary ? m.cfg.onAccent : T.text)
-            .lineLimit(1)
-            .fixedSize()
-            .padding(.horizontal, 12)
-            .frame(height: 30)
-            .background(RoundedRectangle(cornerRadius: 8)
-                .fill(primary ? m.cfg.accentColor : T.card))
-            .overlay(RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(primary ? Color.clear : T.line, lineWidth: 1))
-            .opacity(configuration.isPressed ? 0.75 : 1)
-            .contentShape(Rectangle())
-    }
-}
-
-/// [ −  20 min  + ], as on Windows.
-struct StepperBox: View {
-    let text: String
-    let minus: () -> Void
-    let plus: () -> Void
-
+/// The app mark: accent crescent on a dark rounded tile, as in AppIcon.icns.
+struct AppMark: View {
+    let accent: Color
     var body: some View {
-        HStack(spacing: 0) {
-            Button(action: minus) { Text("\u{2212}").frame(width: 26, height: 28) }
-            Text(text)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(T.text)
-                .frame(width: 62)
-            Button(action: plus) { Text("+").frame(width: 26, height: 28) }
-        }
-        .buttonStyle(.plain)
-        .font(.system(size: 13, weight: .medium))
-        .foregroundColor(T.dim)
-        .background(RoundedRectangle(cornerRadius: 7).fill(T.card))
-        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(T.line, lineWidth: 1))
-    }
-}
-
-/// Pill segmented control used for the tabs and the Friday choice.
-struct Segments: View {
-    let labels: [String]
-    @Binding var selection: Int
-    var height: CGFloat = 32
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(labels.indices, id: \.self) { i in
-                Button { selection = i } label: {
-                    Text(labels[i])
-                        .font(.system(size: 12, weight: selection == i ? .semibold : .regular))
-                        .foregroundColor(selection == i ? T.text : T.dim)
-                        .frame(maxWidth: .infinity, minHeight: height)
-                        .background(RoundedRectangle(cornerRadius: 8)
-                            .fill(selection == i ? T.cardHi : Color.clear))
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
+        GeometryReader { g in
+            RoundedRectangle(cornerRadius: g.size.width * 0.23, style: .continuous)
+                .fill(T.tile)
+                .overlay(Crescent().fill(accent).padding(g.size.width * 0.2))
         }
     }
 }
