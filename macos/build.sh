@@ -23,8 +23,8 @@ for ARCH in arm64 x86_64; do
     swiftc -O -swift-version 5 -target "$ARCH-apple-macos13.0" \
         -o "$OUT/PrayerReminder-$ARCH" "$ROOT"/Sources/*.swift
 done
-lipo -create -output "$APP/Contents/MacOS/PrayerReminder" "$OUT"/PrayerReminder-*
-rm -f "$OUT"/PrayerReminder-*
+lipo -create -output "$APP/Contents/MacOS/PrayerReminder" "$OUT"/PrayerReminder-{arm64,x86_64}
+rm -f "$OUT"/PrayerReminder-{arm64,x86_64}
 
 cp "$ROOT/Resources/Info.plist"   "$APP/Contents/"
 cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/"
