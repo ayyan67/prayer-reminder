@@ -109,8 +109,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             a.orderFrontRegardless()
             popover.show(relativeTo: a.contentView!.bounds, of: a.contentView!, preferredEdge: .minY)
         }
+        keepOnScreen()
         popover.contentViewController?.view.window?.makeKey()
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// NSPopover sometimes opens beside its anchor, or above it, and runs off
+    /// the top of the screen. Pull it back under the menu bar if so.
+    private func keepOnScreen() {
+        guard let w = popover.contentViewController?.view.window,
+              let s = w.screen ?? NSScreen.main else { return }
+        let v = s.visibleFrame
+        var f = w.frame
+        f.origin.y = min(max(f.minY, v.minY), v.maxY - f.height)
+        f.origin.x = min(max(f.minX, v.minX), v.maxX - f.width)
+        if f.origin != w.frame.origin { w.setFrameOrigin(f.origin) }
     }
 
     func popoverDidClose(_ note: Notification) {
