@@ -920,7 +920,7 @@ static void on_click(HWND hwnd, int idx, int part)
 
     case W_BUTTON:
         switch (w->id) {
-        case BTN_REFRESH: times_fetch_async(hwnd);
+        case BTN_REFRESH: app_refresh();
                           InvalidateRect(hwnd, NULL, FALSE); break;
         case BTN_SITE:    open_url(g_cfg.website); break;
         case BTN_HIDE:    ShowWindow(hwnd, SW_HIDE); break;
@@ -960,7 +960,7 @@ static void reload_config(HWND hwnd)
     if (wcscmp(oldId, g_cfg.masjidalId) != 0) {
         ZeroMemory(&g_sched, sizeof g_sched);
         times_load_cache(&g_sched);
-        times_fetch_async(hwnd);
+        app_refresh();
     }
     build_ui(hwnd);
     InvalidateRect(hwnd, NULL, FALSE);
@@ -1051,7 +1051,7 @@ static LRESULT CALLBACK main_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
     case WM_KEYDOWN:
         if (wp == VK_ESCAPE) { ShowWindow(hwnd, SW_HIDE); return 0; }
-        if (wp == VK_F5)     { times_fetch_async(hwnd); return 0; }
+        if (wp == VK_F5)     { app_refresh(); return 0; }
         if (s_page == PAGE_SETTINGS && (wp == VK_NEXT || wp == VK_PRIOR)) {
             s_scroll += (wp == VK_NEXT ? 1 : -1) * SC(300);
             if (s_scroll < 0) s_scroll = 0;

@@ -168,6 +168,11 @@ static void maybe_daily_refresh(void)
     times_fetch_async(s_ctrl);
 }
 
+void app_refresh(void)
+{
+    times_fetch_async(s_ctrl);
+}
+
 /* Fetch again if the cache does not cover today or is getting stale. */
 static void ensure_fresh(void)
 {

@@ -93,6 +93,9 @@ int  times_parse_json(const char *json, Schedule *out);   /* 1 = ok */
 int  times_load_cache(Schedule *out);
 void times_save_cache(const char *json, int len);
 void times_fetch_async(HWND notify);                      /* posts WM_APP_FETCHED */
+/* Start a fetch whose result goes to the controller window, the only window
+ * that handles WM_APP_FETCHED. UI code should call this, not the above. */
+void app_refresh(void);
 const DayTimes *times_for_date(const Schedule *s, int y, int m, int d);
 const DayTimes *times_today(const Schedule *s);
 
